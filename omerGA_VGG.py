@@ -11,9 +11,7 @@ import tensorflow as tf
 from keras.models import Sequential
 #from keras.dataset import mnist
 from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D, Input
-from tensorflow.keras.layers import MaxPool2D
-from tensorflow.keras import Model
+from keras.layers import Conv2D, MaxPooling2D
 #from keras import beckend as K
 from keras.optimizers import SGD
 #from keras.utils import np_utils
@@ -27,14 +25,7 @@ import os
 import cv2
 import scipy
 from PIL import Image
-#from skimage.transform import resize
-#from model import ELM
-from elm import ELM
-
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-
+from skimage.transform import resize
 
 ################################################
 ### CALCULATING THE OBJECTIVE FUNCTION VALUE ###
@@ -46,38 +37,33 @@ def get_data(folder):
     """
     X = []
     y = []
-    image_size = (120,120)
     #z = []
     for wbc_type in os.listdir(folder):
         if not wbc_type.startswith('.'):
             if wbc_type in ['NEUTROPHIL']:
-                label = 0
-                #label2 = 1
-            elif wbc_type in ['EOSINOPHIL']:
                 label = 1
-                #label2 = 1
-            elif wbc_type in ['MONOCYTE']:
+                label2 = 1
+            elif wbc_type in ['EOSINOPHIL']:
                 label = 2
-                #label2 = 0
-            elif wbc_type in ['LYMPHOCYTE']:
+                label2 = 1
+            elif wbc_type in ['MONOCYTE']:
                 label = 3
-                #label2 = 0
-            #else:
-            #    label = 5
-            #    label2 = 0
+                label2 = 0
+            elif wbc_type in ['LYMPHOCYTE']:
+                label = 4
+                label2 = 0
+            else:
+                label = 5
+                label2 = 0
             for image_filename in tqdm(os.listdir(folder + wbc_type)):
                 img_file = cv2.imread(folder + wbc_type + '/' + image_filename)
                 if img_file is not None:
                     #img_file = img_file.resize((60, 80,3),Image.ANTIALIAS)
                     #img_file = resize(img_file, output_shape=(60, 80)).reshape((1, 60 * 80 * 3)).T
                     #np.array(Image.fromarray(img_file).resize(60, 80),PIL.Image.BILINEAR).astype(np.double)
-                    #img_file = cv2.imread(img_file)#reading image
-                    img_file = cv2.cvtColor(img_file, cv2.COLOR_BGR2RGB)#converting BGR image to RGB
-                    img_file = cv2.resize(img_file, image_size)#resizing the input image acc to model input size
-                    #images.append(image)#appending the 2d array
-                    #img_file = scipy.misc.imresize(arr=img_file, size=(80, 80, 3))
-                    #img_arr = np.asarray(img_file)
-                    X.append(img_file)
+                    img_file = scipy.misc.imresize(arr=img_file, size=(60, 80, 3))
+                    img_arr = np.asarray(img_file)
+                    X.append(img_arr)
                     y.append(label)
                     #z.append(label2)
     X = np.asarray(X)
@@ -90,13 +76,13 @@ def get_data(folder):
 
 #(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
 
-#x_train, y_train = get_data('C:/Doktora_Tez/dataset2-master/images/TRAIN/')
-#x_test, y_test = get_data('C:/Doktora_Tez/dataset2-master/images/TEST/')
+x_train, y_train = get_data('C:/Doktora_Tez/dataset2-master/images/TRAIN/')
+x_test, y_test = get_data('C:/Doktora_Tez/dataset2-master/images/TEST/')
 
 # Encode labels to hot vectors (ex : 2 -> [0,0,1,0,0,0,0,0,0,0])
-#from keras.utils.np_utils import to_categorical
-#y_trainHot = to_categorical(y_train, num_classes = 4)
-#y_testHot = to_categorical(y_test, num_classes = 4)
+from keras.utils.np_utils import to_categorical
+y_trainHot = to_categorical(y_train, num_classes = 5)
+y_testHot = to_categorical(y_test, num_classes = 5)
 
 
 #y_trainHot = to_categorical(y_train, num_classes = 10)
@@ -119,75 +105,60 @@ def objective_value(chromosome):
     len_x = 6 # length of chromosome x // Number of Filters 
     lb_y = 32 # lower bound for chromosome y
     ub_y = 128 # upper bound for chromosome y
-    len_y = 7 # length of chromosome y  // Number of Filters  
+    len_y = 7 # length of chromosome y  // Batch size 
     lb_z = 1 # lower bound for chromosome x
     ub_z = 7 # upper bound for chromosome x
-    len_z = 3 # length of chromosome x  // filter size 3x3  
-    lb_t = 10 # lower bound for chromosome t
-    ub_t = 60 # upper bound for chromosome t
-    len_t = 6 # length of chromosome t // dropout 
-    lb_b = 16 # lower bound for chromosome y
-    ub_b = 64 # upper bound for chromosome y
-    len_b = 6 # length of chromosome y // batch size 
-    
+    len_z = 3 # length of chromosome x  // filter size 
+    lb_t = 10 # lower bound for chromosome y
+    ub_t = 30 # upper bound for chromosome y
+    len_t = 5 # length of chromosome y // dropout 
     
     precision_x = (ub_x-lb_x)/((2**len_x)-1) # precision for decoding x
     precision_y = (ub_y-lb_y)/((2**len_y)-1) # precision for decoding y
     precision_z = (ub_z-lb_z)/((2**len_z)-1) # precision for decoding x
     precision_t = (ub_t-lb_t)/((2**len_t)-1) # precision for decoding y
-    precision_b = (ub_b-lb_b)/((2**len_b)-1) # precision for decoding b
     
     z = 0 # because we start at 2^0, in the formula
-    t = 1 # because we start at the very last element of the vector [index -1]
+    i = 1 # because we start at the very last element of the vector [index -1]
     t_bit_sum = 0 # initiation (sum(bit)*2^i is 0 at first)
     for i in range(len_t):
-        t_bit = chromosome[-t]*(2**z)
+        t_bit = chromosome[-i]*(2**z)
         t_bit_sum = t_bit_sum + t_bit
-        t = t+1
+        i = i+1
         z = z+1 
         
     z = 0 # because we start at 2^0, in the formula
-    t = len_t # because we start at the very last element of the vector [index -1]
+    i = 1 + len_t # because we start at the very last element of the vector [index -1]
     z_bit_sum = 0 # initiation (sum(bit)*2^i is 0 at first)
     for i in range(len_z):
-        z_bit = chromosome[-t]*(2**z)
+        z_bit = chromosome[-i]*(2**z)
         z_bit_sum = z_bit_sum + z_bit
-        t = t+1
+        i = i+1
         z = z+1 
         
     z = 0 # because we start at 2^0, in the formula
-    t = len_z + len_t # because we start at the very last element of the vector [index -1]
+    i = 1 + len_z + len_t # because we start at the very last element of the vector [index -1]
     y_bit_sum = 0 # initiation (sum(bit)*2^i is 0 at first)
     for i in range(len_y):
-        y_bit = chromosome[-t]*(2**z)
+        y_bit = chromosome[-i]*(2**z)
         y_bit_sum = y_bit_sum + y_bit
-        t = t+1
+        i = i+1
         z = z+1 
     
     z = 0 # because we start at 2^0, in the formula
-    t = len_y + len_z + len_t # [6,8,3,9] (first 2 are y, so index will be 1+2 = -3)
+    t = 1 + len_y + len_z + len_t # [6,8,3,9] (first 2 are y, so index will be 1+2 = -3)
     x_bit_sum = 0 # initiation (sum(bit)*2^i is 0 at first)
     for j in range(len_x):
         x_bit = chromosome[-t]*(2**z)
         x_bit_sum = x_bit_sum + x_bit
         t = t+1
         z = z+1
-        
-    z = 0 # because we start at 2^0, in the formula
-    t = len_y + len_z + len_t + len_b # [6,8,3,9] (first 2 are y, so index will be 1+2 = -3)
-    x_bit_sum = 0 # initiation (sum(bit)*2^i is 0 at first)
-    for j in range(len_b):
-        x_bit = chromosome[-t]*(2**z)
-        x_bit_sum = x_bit_sum + x_bit
-        t = t+1
-        z = z+1
-        
+    
     # the formulas to decode the chromosome of 0s and 1s to an actual number, the value of x or y
     decoded_x = (x_bit_sum*precision_x)+lb_x
     decoded_y = (y_bit_sum*precision_y)+lb_y
     decoded_z = (z_bit_sum*precision_z)+lb_z
     decoded_t = (t_bit_sum*precision_t)+lb_t
-    decoded_b = (t_bit_sum*precision_b)+lb_b
     
     #(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data(path="mnist.npz")
     x_train, y_train = get_data('C:/Doktora_Tez/dataset2-master/images/TRAIN/')
@@ -221,57 +192,38 @@ def objective_value(chromosome):
                      input_shape=input_shape))
     model.add(Conv2D(int(decoded_x), (int(decoded_z),int(decoded_z)), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(int(decoded_y), (int(decoded_z),int(decoded_z)), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-     model.add(Conv2D(int(decoded_y), (int(decoded_z),int(decoded_z)), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Dropout(decoded_t))
     model.add(Flatten())
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(decoded_t))
     model.add(Dense(num_classes,activation='softmax'))
-    
-#        # define encoder
-#    visible = Input(shape=(decoded_x,))
-#    e = Dense(decoded_x*2)(visible)
-#    e = BatchNormalization()(e)
-#    e = ReLU()(e)
-#    # define bottleneck
-#    n_bottleneck = decoded_x
-#    bottleneck = Dense(n_bottleneck)(e)
-#    # define decoder
-#    d = Dense(decoded_x*2)(bottleneck)
-#    d = BatchNormalization()(d)
-#    d = ReLU()(d)
-#    # output layer
-#    output = Dense(decoded_x, activation='linear')(d)
-#    # define autoencoder model
-#    model = Model(inputs=visible, outputs=output)
     
     model.compile(loss= 'categorical_crossentropy',
                   #optimizer = SGD(0.01),
                   optimizer = 'Adam',
                   metrics= ['accuracy'])
     
-    batch_size = decoded_b
+    batch_size = decoded_y
+    
     epochs = 5
     
     history = model.fit(x_train,
                         y_train,
-                        int(decoded_b),
+                        int(batch_size),
                         int(epochs),
                         verbose =1,
                         validation_data = (x_test, y_test))
     score = model.evaluate(x_test, y_test, verbose=0)
     
-    obj_function_value = score[1]
+    #obj_function_value = score[1]
     
     
     # the himmelblau function
     # min ((x**2)+y-11)**2+(x+(y**2)-7)**2
     # objective function value for the decoded x and decoded y
-    #obj_function_value = ((decoded_x**2)+decoded_y-11)**2+(decoded_z+(decoded_t**2)-7)**2
+    obj_function_value = ((decoded_x**2)+decoded_y-11)**2+(decoded_z+(decoded_t**2)-7)**2
     
-    return decoded_x,decoded_y,decoded_z,decoded_t,decoded_b, obj_function_value # the defined function will return 3 values
+    return decoded_x,decoded_y,obj_function_value # the defined function will return 3 values
 
 
 
@@ -306,11 +258,11 @@ def find_parents_ts(all_solutions):
         obj_func_parent_3 = objective_value(posb_parent_3)[2] # possible parent 3
         
         # find which parent is the best
-        max_obj_func = max(obj_func_parent_1,obj_func_parent_2,obj_func_parent_3)
+        min_obj_func = max(obj_func_parent_1,obj_func_parent_2,obj_func_parent_3)
         
-        if max_obj_func == obj_func_parent_1:
+        if min_obj_func == obj_func_parent_1:
             selected_parent = posb_parent_1
-        elif max_obj_func == obj_func_parent_2:
+        elif min_obj_func == obj_func_parent_2:
             selected_parent = posb_parent_2
         else:
             selected_parent = posb_parent_3

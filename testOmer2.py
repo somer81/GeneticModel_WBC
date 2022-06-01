@@ -13,17 +13,22 @@ import time
 
 
 
+
+
+
 # hyperparameters (user inputted parameters)
-prob_crsvr = 1 # probablity of crossover
-prob_mutation = 0.3 # probablity of mutation
-population = 20 # population number
-generations = 10 # generation number
+prob_crsvr = 0.8 # probablity of crossover
+prob_mutation = 0.05 # probablity of mutation
+population = 4 # population number
+generations = 2 # generation number
 
 
 # x and y decision variables' encoding
 # 13 genes for x and 13 genes for y (arbitrary number)
-x_y_string = np.array([0,1,0,0,0,1,0,0,1,0,1,1,1,0,0,1,1,0,
-                       0,1,1,1,0,0,1,0,1,1,0,1,1,0,1,0,1,1]) # initial solution
+#x_y_string = np.array([0,1,0,0,0,1,0,0,1,0,1,1,1,0,0,1,1,0,
+#                       0,1,1,1,0,0,1,0,1,1,0,1,1,0,1,0,1,1]) # initial solution
+x_y_string = np.array([0,1,0,0,0,1,0,0,1,0,1,1,0,1,
+                       1,0,0,1,1,0,0,1,0,0,0,1,1,1]) # initial solution
 
 
 # create an empty array to put initial population
@@ -106,8 +111,8 @@ for i in range(generations): # do it n (generation) times
         
         # getting the obj val (fitness value) for the 2 mutated children
         # "genf.objective_value"[2] gives obj val for the mutated child
-        obj_val_mutated_child_1 = genf.objective_value(mutated_child_1)[2]
-        obj_val_mutated_child_2 = genf.objective_value(mutated_child_2)[2]
+        obj_val_mutated_child_1 = genf.objective_value(mutated_child_1)[5]
+        obj_val_mutated_child_2 = genf.objective_value(mutated_child_2)[5]
         
         
         
@@ -189,10 +194,10 @@ end_time = time.time() # end time (timing purposes)
 # for this array of last population (convergence), there is a best solution
 # so we sort them from best to worst
 sorted_last_population = np.array(sorted(new_population_with_obj_val,
-                                         key=lambda x:x[0]))
+                                         key=lambda x:x[-1]))
 
 sorted_best_of_a_generation = np.array(sorted(best_of_a_generation,
-                                         key=lambda x:x[0]))
+                                         key=lambda x:x[-1]))
 
 
 # since we sorted them from best to worst
@@ -210,12 +215,19 @@ print()
 print("Execution Time in Seconds:",end_time - start_time) # exec. time
 print()
 print("Final Solution (Convergence):",best_string_convergence[1:]) # final solution entire chromosome
-print("Encoded X (Convergence):",best_string_convergence[1:14]) # final solution x chromosome
-print("Encoded Y (Convergence):",best_string_convergence[14:]) # final solution y chromosome
+print("Encoded B (Convergence):",best_string_convergence[1:7]) # final solution x chromosome
+print("Encoded X (Convergence):",best_string_convergence[7:13]) # final solution y chromosome
+print("Encoded Y (Convergence):",best_string_convergence[13:20]) # final solution x chromosome
+print("Encoded Z (Convergence):",best_string_convergence[20:23]) # final solution y chromosome
+print("Encoded T (Convergence):",best_string_convergence[23:29]) # final solution y chromosome
 print()
 print("Final Solution (Best):",best_string_overall[1:]) # final solution entire chromosome
-print("Encoded X (Best):",best_string_overall[1:14]) # final solution x chromosome
-print("Encoded Y (Best):",best_string_overall[14:]) # final solution y chromosome
+print("Encoded B (Best):",best_string_overall[1:7]) # final solution x chromosome
+print("Encoded X (Best):",best_string_overall[7:13]) # final solution y chromosome
+print("Encoded Y (Best):",best_string_overall[3:20]) # final solution x chromosome
+print("Encoded Z (Best):",best_string_overall[20:23]) # final solution y chromosome
+print("Encoded T (Best):",best_string_overall[23:29]) # final solution x chromosome
+
 
 # to decode the x and y chromosomes to their real values
 # the "genf.objective_value" function returns 3 things -->
